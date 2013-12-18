@@ -38,7 +38,7 @@ handle_cast({remove_guid, Guid}, State) ->
 
 handle_cast({remote_find_guid, Guid, FromNode, Ctx}, State) ->
 	LocalGuidSet = State#router_state.local_guid_set,
-	Result = dict:fetch(Guid, LocalGuidSet),
+	Result = dict:find(Guid, LocalGuidSet),
 	gen_server:cast({?ROUTER_NAME, FromNode}, {remote_reply_guid, Result, Ctx}),
 	{noreply, State};
 
@@ -48,7 +48,7 @@ handle_cast({remote_reply_guid, ReplyInfo, CallFrom}, State) ->
 
 try_find_guid_remote(Guid, From, State) ->
 	RemoteGuidNode = State#router_state.remote_guid_node,
-	case dict:fetch(Guid, RemoteGuidNode) of
+	case dict:find(Guid, RemoteGuidNode) of
 		{ok, Node} ->
 			gen_server:cast({?ROUTER_NAME, Node}, {remote_find_guid, Guid, node(), From}),
 			{noreply, State};
@@ -58,10 +58,10 @@ try_find_guid_remote(Guid, From, State) ->
 
 handle_call({find_guid, Guid}, From, State) ->
 	LocalGuidSet = State#router_state.local_guid_set,
-	case dict:fetch(Guid, LocalGuidSet) of
+	case dict:find(Guid, LocalGuidSet) of
 		{ok, Pid} ->
 			{reply, {ok, Pid}, State};
-		false ->
+		error ->
 			try_find_guid_remote(Guid, From, State)
 	end.
 
@@ -76,3 +76,17 @@ terminate(_Reason, _State) ->
 
 
 % ================================export apis===========================
+add_guid(Guid) ->
+	gen_server:cast(?ROUTER_NAME, {add_guid, Guid, self()}).
+
+remove_guid(Guid) ->
+	gen_server:cast(?ROUTER_NAME, {remove_guid, Guid}).
+
+find_guid(Guid) ->
+	case gen_server:call(?ROUTER_NAME, {find_guid, Guid}) of
+		{ok, Pid} ->
+			io:format("Find guid pid,~p,~p~n", [Guid, Pid]);
+		error ->
+			io:format("Find guid pid failed~n")
+	end.
+
