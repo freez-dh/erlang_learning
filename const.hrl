@@ -1,0 +1,3 @@
+-define(NODE_MANAGER, node_manager).
+-define(ROUTER_NAME, router).
+-define(NODE_MANAGER_NODE, 'node_manager@denghui-Aspire-4750').
